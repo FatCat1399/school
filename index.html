@@ -1385,10 +1385,13 @@ async function dbxFetch(url,o,tr){o=o||{};const at=await dbxAccess();o.headers={
  if(!r.ok)throw new Error("Dropbox "+r.status);return r}
 async function dbxMeta(){try{const r=await dbxFetch("https://api.dropboxapi.com/2/files/get_metadata",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:DBXP})});return await r.json()}catch(e){if(e.st==409&&/not_found/.test(e.tx))return null;throw e}}
 async function dbxPull(){const r=await dbxFetch("https://content.dropboxapi.com/2/files/download",{method:"POST",headers:{"Dropbox-API-Arg":JSON.stringify({path:DBXP})}});const rev=(()=>{try{return JSON.parse(r.headers.get("dropbox-api-result")).rev}catch(e){return ""}})();return{o:JSON.parse(await r.text()),rev}}
+async function dbxPushX(){const lb=LASTBK;let bl;XLSXM=true;try{bl=dataBook()}finally{XLSXM=false;LASTBK=lb}
+ const arg={path:"/sijil-data.xlsx",mode:{".tag":"overwrite"},autorename:false,mute:true};
+ await dbxFetch("https://content.dropboxapi.com/2/files/upload",{method:"POST",headers:{"Dropbox-API-Arg":JSON.stringify(arg),"Content-Type":"application/octet-stream"},body:bl})}
 async function dbxPush(){const m=D.mod||new Date().toISOString(),o={...D,students:STUDENTS,savedAt:m};delete o.dbxRev;delete o.dbxAt;
  const arg={path:DBXP,mode:D.dbxRev?{".tag":"update",update:D.dbxRev}:{".tag":"add"},autorename:false,mute:true};
  const r=await dbxFetch("https://content.dropboxapi.com/2/files/upload",{method:"POST",headers:{"Dropbox-API-Arg":JSON.stringify(arg),"Content-Type":"application/octet-stream"},body:JSON.stringify(o)});const j=await r.json();
- D.dbxRev=j.rev;D.dbxAt=m;dbxPut()}
+ D.dbxRev=j.rev;D.dbxAt=m;dbxPut();dbxPushX().catch(()=>{})}
 function dbxApply(o,rev){const keepSg=D.sg2;D=migrate(o);const sa=D.savedAt||new Date().toISOString();delete D.savedAt;normD(D);if(D.sg2===undefined)D.sg2=keepSg;
  STUDENTS=Array.isArray(D.students)&&(D.students.length||D.wiped)?D.students:BASE;D.mod=D.cloudAt=D.dbxAt=sa;D.dbxRev=rev;dbxPut();
  $("per").value=D.per;fillGrp();applyType();fillItems();go(CUR);buildMenus();bkStatus()}
@@ -1441,9 +1444,9 @@ addEventListener("beforeunload",e=>{if(sgOn()&&isDirty()){if(window.dirtyShow)di
  const upd=()=>{if(b.style.display!="none"&&!(sgOn()&&isDirty())){b.style.display="none";document.body.style.paddingBottom="";document.title=T0}};setInterval(upd,1000);
  let ht=0;document.addEventListener("mouseout",e=>{if(e.relatedTarget===null&&e.clientY<=2&&sgOn()&&isDirty()&&!$("gateD").open&&!$("exitD").open){dirtyShow();clearTimeout(ht);ht=setTimeout(()=>{b.style.display="none";document.body.style.paddingBottom="";document.title=T0},8000)}})}
 $("bk").onclick=()=>{const b=dataBook();if(dl("بيانات_المتابعة.xlsm",b))markSaved()};
-async function shareData(){const nm="بيانات_المتابعة.xlsm";LASTBK=new Date().toISOString();const js=JSON.stringify({...D,students:STUDENTS,savedAt:LASTBK});let why="";
+async function shareData(){if(dbxLinked())dbxPushX().catch(()=>{});const nm="بيانات_المتابعة.xlsm";LASTBK=new Date().toISOString();const js=JSON.stringify({...D,students:STUDENTS,savedAt:LASTBK});let why="";
  if(!navigator.share)why="المتصفح لا يدعم المشاركة (share)";
- else{let xb=null;try{if(localStorage.getItem("xlsxBad")!="1"){XLSXM=true;try{xb=dataBook()}finally{XLSXM=false}}}catch(e){xb=null}
+ else{let xb=null;try{if(false){XLSXM=true;try{xb=dataBook()}finally{XLSXM=false}}}catch(e){xb=null}
   const XM="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",fx=xb?new File([xb],"sijil-backup.xlsx",{type:XM}):null,useX=!!(fx&&navigator.canShare&&navigator.canShare({files:[fx]})),f=useX?fx:new File([js],"sijil-backup.txt",{type:"text/plain"});
   try{if(navigator.canShare&&!navigator.canShare({files:[f]}))why="رفض المتصفح نوع الملف";else{await navigator.share({files:[f],title:"بيانات المتابعة"});markSaved();shToast("تمت مشاركة النسخة",true);return true}}
   catch(e){if(e&&e.name=="AbortError"){shToast("أُلغيت المشاركة");return false}if(useX){try{localStorage.setItem("xlsxBad","1")}catch(_){}shToast("لم يقبل الجوال مشاركة ملف Excel، اضغط حفظ مرة أخرى لحفظه كملف نصي");return false}why=(e&&e.name||"خطأ")+(e&&e.message?": "+e.message:"")}}
