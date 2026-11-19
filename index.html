@@ -1330,9 +1330,9 @@ function sheetXml(rows){const W=[];rows.forEach(r=>r.forEach((v,i)=>{W[i]=Math.m
  const sd=rows.map((r,ri)=>`<row r="${ri+1}">`+r.map((v,ci)=>{if(v===""||v==null)return "";const a=cl(ci)+(ri+1);
   return typeof v=="number"||(ri>0&&/^\d{1,12}(\.\d+)?$/.test(String(v)))?`<c r="${a}"><v>${v}</v></c>`:`<c r="${a}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`}).join("")+"</row>").join("");
  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"/></sheetViews><cols>${W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${sd}</sheetData></worksheet>`}
-function xlsmN(sheets){const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',R="http://schemas.openxmlformats.org/officeDocument/2006/relationships",M="http://schemas.openxmlformats.org/spreadsheetml/2006/main",P="http://schemas.openxmlformats.org/package/2006/relationships";
+let XLSXM=false;function xlsmN(sheets){const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',R="http://schemas.openxmlformats.org/officeDocument/2006/relationships",M="http://schemas.openxmlformats.org/spreadsheetml/2006/main",P="http://schemas.openxmlformats.org/package/2006/relationships";
  const nm=s=>esc(s.name.replace(/[\\\/?*\[\]:]/g,"-").slice(0,31));
- return zip([["[Content_Types].xml",H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/>'+sheets.map((s,k)=>`<Override PartName="/xl/worksheets/sheet${k+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")+'</Types>'],
+ return zip([["[Content_Types].xml",H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="'+(XLSXM?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml":"application/vnd.ms-excel.sheet.macroEnabled.main+xml")+'"/>'+sheets.map((s,k)=>`<Override PartName="/xl/worksheets/sheet${k+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")+'</Types>'],
  ["_rels/.rels",H+`<Relationships xmlns="${P}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
  ["xl/workbook.xml",H+`<workbook xmlns="${M}" xmlns:r="${R}"><sheets>${sheets.map((s,k)=>`<sheet name="${nm(s)}" sheetId="${k+1}" r:id="rId${k+1}"/>`).join("")}</sheets></workbook>`],
  ["xl/_rels/workbook.xml.rels",H+`<Relationships xmlns="${P}">${sheets.map((s,k)=>`<Relationship Id="rId${k+1}" Type="${R}/worksheet" Target="worksheets/sheet${k+1}.xml"/>`).join("")}</Relationships>`],
@@ -1443,9 +1443,10 @@ addEventListener("beforeunload",e=>{if(sgOn()&&isDirty()){if(window.dirtyShow)di
 $("bk").onclick=()=>{const b=dataBook();if(dl("بيانات_المتابعة.xlsm",b))markSaved()};
 async function shareData(){const nm="بيانات_المتابعة.xlsm";LASTBK=new Date().toISOString();const js=JSON.stringify({...D,students:STUDENTS,savedAt:LASTBK});let why="";
  if(!navigator.share)why="المتصفح لا يدعم المشاركة (share)";
- else{const f=new File([js],"sijil-backup.txt",{type:"text/plain"});
+ else{let xb=null;try{if(localStorage.getItem("xlsxBad")!="1"){XLSXM=true;try{xb=dataBook()}finally{XLSXM=false}}}catch(e){xb=null}
+  const XM="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",fx=xb?new File([xb],"sijil-backup.xlsx",{type:XM}):null,useX=!!(fx&&navigator.canShare&&navigator.canShare({files:[fx]})),f=useX?fx:new File([js],"sijil-backup.txt",{type:"text/plain"});
   try{if(navigator.canShare&&!navigator.canShare({files:[f]}))why="رفض المتصفح نوع الملف";else{await navigator.share({files:[f],title:"بيانات المتابعة"});markSaved();shToast("تمت مشاركة النسخة",true);return true}}
-  catch(e){if(e&&e.name=="AbortError"){shToast("أُلغيت المشاركة");return false}why=(e&&e.name||"خطأ")+(e&&e.message?": "+e.message:"")}}
+  catch(e){if(e&&e.name=="AbortError"){shToast("أُلغيت المشاركة");return false}if(useX){try{localStorage.setItem("xlsxBad","1")}catch(_){}shToast("لم يقبل الجوال مشاركة ملف Excel، اضغط حفظ مرة أخرى لحفظه كملف نصي");return false}why=(e&&e.name||"خطأ")+(e&&e.message?": "+e.message:"")}}
  const b=dataBook();
  if(dl(nm,b)){markSaved();alert("لا تدعم هذه الشاشة المشاركة المباشرة، فنزّلت الملف على الجوال. ارفعه إلى Dropbox من تطبيق الملفات."+(why?"\n\nالسبب: "+why:""));return true}return false}
 
