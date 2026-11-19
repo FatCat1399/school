@@ -1411,8 +1411,9 @@ addEventListener("beforeunload",e=>{if(sgOn()&&isDirty()){if(window.dirtyShow)di
  const upd=()=>{if(b.style.display!="none"&&!(sgOn()&&isDirty())){b.style.display="none";document.body.style.paddingBottom="";document.title=T0}};setInterval(upd,1000);
  let ht=0;document.addEventListener("mouseout",e=>{if(e.relatedTarget===null&&e.clientY<=2&&sgOn()&&isDirty()&&!$("gateD").open&&!$("exitD").open){dirtyShow();clearTimeout(ht);ht=setTimeout(()=>{b.style.display="none";document.body.style.paddingBottom="";document.title=T0},8000)}})}
 $("bk").onclick=()=>{const b=dataBook();if(dl("بيانات_المتابعة.xlsm",b))markSaved()};
-async function shareData(){const nm="بيانات_المتابعة.xlsm",b=dataBook(),f=new File([b],nm,{type:b.type});
- try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"بيانات المتابعة"});markSaved();shToast("تمت مشاركة النسخة",true);return true}}
+async function shareData(){const nm="بيانات_المتابعة.xlsm",b=dataBook(),js=JSON.stringify({...D,students:STUDENTS,savedAt:LASTBK}),
+ cand=[new File([b],nm,{type:b.type}),new File([js],"بيانات_المتابعة.json",{type:"application/json"}),new File([js],"بيانات_المتابعة.txt",{type:"text/plain"})];
+ try{for(const f of cand)if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"بيانات المتابعة"});markSaved();shToast("تمت مشاركة النسخة",true);return true}}
  catch(e){if(e&&e.name=="AbortError"){shToast("أُلغيت المشاركة");return false}}
  if(dl(nm,b)){markSaved();alert("لا تدعم هذه الشاشة المشاركة المباشرة، فنزّلت الملف على الجوال. ارفعه إلى Dropbox من تطبيق الملفات.");return true}return false}
 
