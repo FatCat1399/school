@@ -1343,7 +1343,8 @@ function dl(name,text,type){try{const a=document.createElement("a");a.href=URL.c
 function catRows(c){const C=CATS[c],cfg=CFG(),ps=C.noper?[0]:PERS();const cols=[];
  ps.forEach(p=>selItems(c,p||1).forEach(n=>{if(C.noper&&n==IMP)return;cols.push([p,n])}));
  const sc=(id,p,n)=>{const v=((D.vals[c]||{})[K(c,p,n)]||{})[id];return v===undefined?"":v};
- return [["رقم الطالب","اسم الطالب","الشعبة",...cols.map(([p,n])=>(p?"فترة"+p+": ":"")+n)],...STUDENTS.map(s=>[s[0],s[1],s[2]||"",...cols.map(([p,n])=>sc(s[0],p,n))])]}
+ const GS=CALC.includes(c),RR=GS?calcAll():null,gh=GS?(C.noper?["الدرجة"]:["الدرجة فترة1","الدرجة فترة2","الدرجة النهائية"]):[],gv=id=>{if(!GS)return[];const x=RR[id]&&RR[id].cats[c];if(!x)return gh.map(()=>"");return C.noper?[x.fin]:[x.p1,x.p2,x.fin]};
+ return [["رقم الطالب","اسم الطالب","الشعبة",...cols.map(([p,n])=>(p?"فترة"+p+": ":"")+n),...gh],...STUDENTS.map(s=>[s[0],s[1],s[2]||"",...cols.map(([p,n])=>sc(s[0],p,n)),...gv(s[0])])]}
 function resultRows(){const R=calcAll(),h=["رقم الطالب","اسم الطالب","الشعبة"];
  CALC.forEach(c=>h.push(CLAB[c]+" فترة1",CLAB[c]+" فترة2",CLAB[c]+" نهائي"));
  h.push("مجموع الأعمال","النهائي العملي","النهائي التحريري","المجموع","النسبة %","التقدير","إنذار واجب","إنذار أنشطة","إنذار مشروع","إنذار غياب","إنذار تأخر");
