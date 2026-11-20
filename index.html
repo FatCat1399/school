@@ -324,7 +324,7 @@ body:not(.inner) header{min-height:92px;box-sizing:border-box;display:flex;flex-
 <section id="vbk" style="display:none"><div class="fc"><div class="bt">النسخ الاحتياطي</div>
 <p class="hnote" style="text-align:right;margin:0 0 8px">بياناتك تُحفظ على جوالك تلقائياً. احفظ نسخة بين وقت وآخر.</p><p class="hnote" id="bkSt" style="text-align:right;margin:0 0 8px"></p><p class="hnote" style="text-align:right;margin:0 0 8px"><b>للانتقال بين جهازين:</b> ١) على الجهاز الأول اضغط «☁ حفظ في السحابة» واختر Drive أو Dropbox. ٢) على الجهاز الثاني اضغط «☁ استرجاع من السحابة» واختر الملف نفسه. يحل الملف محل بيانات الجهاز، فاحفظ دائماً من الجهاز الذي عدّلت عليه آخراً.</p><p class="hnote" style="text-align:right;margin:0 0 8px">إصدار التطبيق: <b>19-11-2026 · 18:40</b> (بلا رسائل الدخول والخروج)</p>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" id="bk">💾 حفظ نسخة على الجوال</button><button class="btn sec" id="rs">📂 استرجاع نسخة</button>
-<button class="btn" id="cs">☁ حفظ في السحابة</button><button class="btn sec" id="co">☁ استرجاع من السحابة</button><button class="btn sec" id="sgT" style="grid-column:1/-1"></button><div id="dbxBox" style="grid-column:1/-1;text-align:right"><p class="hnote" id="dbxSt" style="margin:6px 0"></p><div class="row"><button class="btn" id="dbxLink">🔗 ربط Dropbox</button><button class="btn sec" id="dbxNow">🔄 مزامنة الآن</button><button class="btn sec" id="dbxOff">إلغاء الربط</button></div></div></div>
+<button class="btn" id="cs">☁ حفظ في السحابة</button><button class="btn sec" id="co">☁ استرجاع من السحابة</button><button class="btn sec" id="sgT" style="grid-column:1/-1"></button><div id="dbxBox" style="grid-column:1/-1;text-align:right"><p class="hnote" id="dbxSt" style="margin:6px 0"></p><div class="row"><button class="btn" id="dbxLink">🔗 ربط Dropbox</button><button class="btn sec" id="dbxNow">🔄 مزامنة الآن</button><button class="btn sec" id="dbxOff">إلغاء الربط</button></div><details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;font-size:13px">🔑 مفتاح تطبيق Dropbox (متقدم)</summary><p class="hnote" style="margin:6px 0">المفتاح (App key) يعرّف تطبيقك لدى Dropbox ويحدد أين تُحفظ بياناتك. اتركه كما هو إلا إن أنشأت تطبيقك الخاص في Dropbox. يُحفظ على هذا الجهاز فقط، وتغييره يلغي الربط الحالي فتربط من جديد.</p><input id="dbxKey" type="text" dir="ltr" autocomplete="off" spellcheck="false" style="width:100%;text-align:left"><div class="row" style="margin-top:6px"><button class="btn" id="dbxKeySv" style="flex:1">حفظ المفتاح</button><button class="btn sec" id="dbxKeyDf" style="flex:1">استعادة الافتراضي</button></div></details></div></div>
 <input type="file" id="f" accept="text/plain,.txt,.json,application/json,.xlsm,.xlsx,application/octet-stream" hidden></div></section>
 <section id="vyr" style="display:none"></section>
 <section id="vdl" style="display:none"><div class="fc" style="border-color:#dc2626"><div class="bt" style="background:#b91c1c">حذف البيانات</div>
@@ -1407,7 +1407,7 @@ function dataBook(){const sh=[{name:"معلومات",rows:[["سجل المتاب
  for(let i=0;i<js.length;i+=30000)rows.push([js.slice(i,i+30000)]);
  sh.push({name:"_json",rows});return xlsmN(sh)}
 /* ===== مزامنة Dropbox التلقائية ===== */
-const DBXK="armwpjldry8oq9l",DBXP="/sijil.json",DBXRED=location.origin+location.pathname.replace(/index\.html$/,"");
+const DBXK0="armwpjldry8oq9l",DBXP="/sijil.json",DBXRED=location.origin+location.pathname.replace(/index\.html$/,"");let DBXK=(()=>{try{return localStorage.getItem("dbx_key")||DBXK0}catch(_){return DBXK0}})();
 const DBX={busy:false,msg:"",last:"",t:0,seen:0};
 const dbxTok=()=>{try{return JSON.parse(localStorage.getItem("dbx_tok")||"null")}catch(e){return null}};
 const dbxLinked=()=>!!(dbxTok()&&dbxTok().rt);
@@ -1476,6 +1476,12 @@ $("gateSkip").onclick=()=>{const b=$("gateSkip");if(!b._t){b._t=1;b.textContent=
 function exitShow(){$("exitT").innerHTML="<b>احفظ نسخة في السحابة قبل الخروج</b><br>عدّلت بياناتك بعد آخر نسخة محفوظة.<br><span class=\"dk\">الرجاء التأكد من حفظ الملف في السحابة.</span>";$("exitD").showModal()}
 $("exitSave").onclick=async()=>{if(await shareData()){$("exitD").close();shToast("تم الحفظ، اضغط رجوع مرة أخرى للخروج",true)}};
 $("exitNo").onclick=()=>$("exitD").close();
+$("dbxKey").value=DBXK;
+const dbxSetKey=v=>{v=(v||"").trim();if(!/^[a-z0-9]{10,24}$/i.test(v)){shToast("المفتاح غير صالح: حروف وأرقام إنجليزية فقط (10 إلى 24 خانة)",false);return}
+ if(v===DBXK){shToast("هذا هو المفتاح الحالي",true);return}
+ try{if(v===DBXK0)localStorage.removeItem("dbx_key");else localStorage.setItem("dbx_key",v)}catch(_){shToast("تعذّر حفظ المفتاح على هذا الجهاز",false);return}
+ DBXK=v;const was=dbxLinked();localStorage.removeItem("dbx_tok");localStorage.removeItem("dbx_ver");delete D.dbxRev;delete D.dbxAt;dbxPut();DBX.last="";DBX.msg="";dbxStatus();$("dbxKey").value=v;shToast(was?"حُفظ المفتاح وأُلغي الربط السابق. اضغط «ربط Dropbox» من جديد":"حُفظ المفتاح. اضغط «ربط Dropbox»",true)};
+$("dbxKeySv").onclick=()=>dbxSetKey($("dbxKey").value);$("dbxKeyDf").onclick=()=>dbxSetKey(DBXK0);
 $("dbxLink").onclick=dbxLink;$("dbxNow").onclick=()=>dbxSync(true);
 $("dbxOff").onclick=()=>{const b=$("dbxOff");if(!b._t){b._t=1;b.textContent="اضغط مرة ثانية لإلغاء الربط";setTimeout(()=>{b._t=0;b.textContent="إلغاء الربط"},4000);return}b._t=0;b.textContent="إلغاء الربط";localStorage.removeItem("dbx_tok");delete D.dbxRev;delete D.dbxAt;dbxPut();DBX.last="";DBX.msg="";dbxStatus();shToast("أُلغي ربط Dropbox. بياناتك على الجهاز وفي Dropbox كما هي",true)};
 $("sgT").onclick=()=>{D.sg2=D.sg2===true?false:true;try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}bkStatus()};
