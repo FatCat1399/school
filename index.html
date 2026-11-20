@@ -399,7 +399,7 @@ body:not(.inner) header{min-height:92px;box-sizing:border-box;display:flex;flex-
 <div class="row"><button class="btn" id="eok">حفظ</button><button class="btn" id="edel" style="background:#dc2626">حذف الطالب</button><button class="btn sec" onclick="esd.close()">إلغاء</button></div></dialog>
 <dialog id="gateD" data-gate="1"><p id="gateT" style="line-height:1.8"></p><div class="row"><button class="btn" id="gateOpen">☁ استرجاع من السحابة</button></div><div class="row" id="gateSaveW" style="margin-top:8px"><button class="btn sec" id="gateSave">☁ حفظ بيانات هذا الجهاز أولاً</button></div><button class="btn sec" id="gateSkip" style="margin-top:10px;font-size:12px;padding:6px 10px">لا يوجد ملف في السحابة (أول استخدام)</button></dialog>
 <dialog id="exitD" data-gate="1"><p id="exitT" style="line-height:1.8"></p><div class="row"><button class="btn" id="exitSave">☁ حفظ في السحابة</button><button class="btn sec" id="exitNo">البقاء في البرنامج</button></div></dialog>
-<dialog id="rsd"><p id="rsT"></p><div class="row"><button class="btn" id="rsOk">استبدال بياناتي</button><button class="btn sec" onclick="rsd.close()">إلغاء</button></div></dialog>
+<dialog id="rsd"><p id="rsT"></p><div class="row"><button class="btn" id="rsSt">استرجاع بيانات الطلاب فقط</button><button class="btn sec" id="rsOk">استبدال كل بياناتي</button><button class="btn sec" onclick="rsd.close()">إلغاء</button></div></dialog>
 <dialog id="nyd"><p><b>بدء عام جديد</b></p>
 <p style="font-size:14px">سيمسح التطبيق من هذا الجوال: كل الحالات والدرجات المرصودة، والدرجات اليدوية، والبنود التي أضفتها. يبقى الميزان وقائمة الطلاب كما هما.</p>
 <p style="font-size:14px;color:var(--bad)">لا يمكن التراجع بعد المسح. احفظ نسخة من بيانات هذا العام أولاً.</p>
@@ -1124,20 +1124,22 @@ function vEntries(id){const o=[],s=String(id),rr=ENG.calc(inputOf(id),CFG());
 const stuBy=id=>STUDENTS.find(s=>String(s[0])===String(id));
 let VC={};const ve=id=>VC[id]||(VC[id]=vEntries(id));
 const refsOf=id=>(D.refl||[]).filter(r=>String(r.sid)===String(id));
-function mkRef(sid,gd,quiet){const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),sid:String(sid),no:(D.refn=(D.refn||0)+1),date:(CUR=="vvl"&&$("vlDt").value)||todayS(),gd:gd||"",rs:vEntries(sid).map(e=>({name:e.name,deg:e.deg,n:e.n,act:e.act}))};
- (D.refl=D.refl||[]).push(rec);if(quiet)return rec;save();VFBACK=(CUR=="vv")?"vv":"vvl";openRefs([rec.id])}
+let TMPR=[];const findRef=id=>(D.refl||[]).find(r=>r.id===id)||TMPR.find(r=>r.id===id);
+function mkRef(sid,gd,quiet,tmp){const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),sid:String(sid),no:tmp?"":(D.refn=(D.refn||0)+1),date:(CUR=="vvl"&&$("vlDt").value)||todayS(),gd:gd||"",rs:vEntries(sid).map(e=>({name:e.name,deg:e.deg,n:e.n,act:e.act}))};
+ if(tmp)TMPR.push(rec);else (D.refl=D.refl||[]).push(rec);if(quiet)return rec;if(!tmp){save();refToast([rec])}VFBACK=(CUR=="vv")?"vv":"vvl";openRefs([rec.id])}
+function refToast(R){const s=stuBy(R[0].sid);shToast(R.length==1&&s?"تم رصد تحويل «"+s[1]+"» (المرة "+refsOf(s[0]).length+") وحُدّثت الإحصائية":"تم رصد "+R.length+" تحويل وحُدّثت الإحصائية",true)}
+function refMode(head,sub,cb){const o=document.createElement("div");o.className="pkov";o.style.cssText="position:fixed;inset:0;background:#0009;z-index:99;display:flex;align-items:center;justify-content:center;padding:16px";
+ o.innerHTML=`<div style="background:var(--card);color:var(--tx);border-radius:14px;padding:14px;width:100%;max-width:360px"><div style="font-weight:700;margin-bottom:4px">${head}</div><div style="font-size:13px;margin-bottom:10px">${sub}</div><button class="btn" data-m="rec" style="width:100%;margin-bottom:6px">✅ تحويل ورصده في الإحصائية</button><button class="btn sec" data-m="tmp" style="width:100%;margin-bottom:6px">🖨 طباعة النموذج فقط (دون رصد)</button><button class="btn sec" data-c="1" style="width:100%">إلغاء</button></div>`;
+ o.onclick=e=>{const b=e.target.closest("button");if(e.target===o||(b&&b.dataset.c)){o.remove();return}if(b&&b.dataset.m){o.remove();cb(b.dataset.m=="tmp")}};document.body.appendChild(o)}
 function pickG(head,sub,cb){const I=repInfo(),gs=I.glist,o=document.createElement("div");o.className="pkov";o.style.cssText="position:fixed;inset:0;background:#0009;z-index:99;display:flex;align-items:center;justify-content:center;padding:16px";
  o.innerHTML=`<div style="background:var(--card);color:var(--tx);border-radius:14px;padding:14px;width:100%;max-width:360px"><div style="font-weight:700;margin-bottom:4px">${head}</div><div style="font-size:13px;margin-bottom:10px">${sub}<br>اختر الموجه الطلابي:</div>${gs.map(g=>`<button class="btn ${g===I.gsel?"":"sec"}" data-g="${esc(g)}" style="width:100%;margin-bottom:6px">${esc(g)}${g===I.gsel?" (المعتمد)":""}</button>`).join("")}<button class="btn sec" data-g="" style="width:100%;margin-bottom:6px">بدون تحديد الآن</button><button class="btn sec" data-c="1" style="width:100%">إلغاء</button></div>`;
  o.onclick=e=>{const b=e.target.closest("button");if(e.target===o||(b&&b.dataset.c)){o.remove();return}if(b){o.remove();cb(b.dataset.g)}};document.body.appendChild(o)}
-function doRef(sid,btn,msgId){const s=stuBy(sid);if(!s)return;const gs=repInfo().glist;
- if(gs.length>1){pickG("تحويل الطالب",esc(s[1]),g=>mkRef(sid,g));return}
- if(!ask("rf"+sid,btn,msgId,"اضغط الزر مرة ثانية لتحويل الطالب «"+s[1]+"» (سيُحسب تحويلاً جديداً)"))return;
- mkRef(sid,gs[0]||"")}
+function doRef(sid,btn,msgId){const s=stuBy(sid);if(!s)return;const gs=repInfo().glist,go2=g=>refMode("تحويل الطالب",esc(s[1]),t=>{if(t)TMPR=[];mkRef(sid,g,false,t)});
+ if(gs.length>1){pickG("تحويل الطالب",esc(s[1]),go2);return}go2(gs[0]||"")}
 const vlElig=()=>vlStu().filter(s=>ve(s[0]).some(e=>actKind(e.act)=="تحويل")),vlPend=()=>vlElig().filter(s=>$("vlInc").checked||!refsOf(s[0]).length);
 function doRefAll(btn){const P=vlPend();if(!P.length){flash("vlM","لا يوجد مؤهلون لم يُحوَّلوا بعد (فعّل «تضمين من سبق تحويله» لإعادة تحويلهم)");return}
- const run=g=>{const ids=P.map(s=>mkRef(s[0],g,1).id);save();buildVl();VFBACK="vvl";openRefs(ids)},gs=repInfo().glist;
- if(gs.length>1){pickG("تحويل جميع المؤهلين","سيُحوَّل "+P.length+" طالباً",run);return}
- if(!ask("rfall",btn,"vlM","اضغط الزر مرة ثانية لتحويل "+P.length+" طالباً مؤهلاً"))return;run(gs[0]||"")}
+ const run=(g,t)=>{if(t)TMPR=[];const rc=P.map(s=>mkRef(s[0],g,1,t));if(!t){save();refToast(rc)}buildVl();VFBACK="vvl";openRefs(rc.map(r=>r.id))},gs=repInfo().glist,go2=g=>refMode("تحويل جميع المؤهلين","سيُحوَّل "+P.length+" طالباً",t=>run(g,t));
+ if(gs.length>1){pickG("تحويل جميع المؤهلين","سيُحوَّل "+P.length+" طالباً",go2);return}go2(gs[0]||"")}
 function vvFill(){const g=$("vvG").value;
  $("vvS").innerHTML=STUDENTS.filter(s=>!g||s[2]==g).map((s,i)=>`<option value="${esc(s[0])}">${i+1}. ${esc(s[1])}</option>`).join("");vvRep()}
 function vvRep(){const id=$("vvS").value,v=$("vvV").value;if(!id||!v){$("vvA").textContent="";return}
@@ -1189,9 +1191,8 @@ function updSel(){$("vwRef").textContent="🔁 تحويل المحدَّدين (
 $("vlW").addEventListener("change",e=>{const t=e.target;if(t.id=="vwAll"){VWV.forEach(i=>t.checked?SELW.add(i):SELW.delete(i));$("vlW").querySelectorAll("[data-w]").forEach(c=>c.checked=t.checked)}else if(t.dataset.w!==undefined){t.checked?SELW.add(t.dataset.w):SELW.delete(t.dataset.w);$("vwAll").checked=VWV.length>0&&VWV.every(i=>SELW.has(i))}updSel()});
 $("vlR").addEventListener("change",e=>{const t=e.target;if(t.id=="vrAll"){VRV.forEach(i=>t.checked?SELR.add(i):SELR.delete(i));$("vlR").querySelectorAll("[data-r]").forEach(c=>c.checked=t.checked)}else if(t.dataset.r!==undefined){t.checked?SELR.add(t.dataset.r):SELR.delete(t.dataset.r);$("vrAll").checked=VRV.length>0&&VRV.every(i=>SELR.has(i))}updSel()});
 $("vwRef").onclick=()=>{const P=selW();if(!P.length){flash("vlM","حدّد الطلاب أولاً من «سجل الإنذارات لكل طالب»");return}
- const run=g=>{const ids=P.map(i=>mkRef(i,g,1).id);P.forEach(i=>SELW.delete(i));save();buildVl();VFBACK="vvl";openRefs(ids)},gs=repInfo().glist;
- if(gs.length>1){pickG("تحويل المحدَّدين","سيُحوَّل "+P.length+" طالباً",run);return}
- if(!ask("vwr",$("vwRef"),"vlM","اضغط الزر مرة ثانية لتحويل "+P.length+" طالباً محدَّداً"))return;run(gs[0]||"")};
+ const run=(g,t)=>{if(t)TMPR=[];const rc=P.map(i=>mkRef(i,g,1,t));P.forEach(i=>SELW.delete(i));if(!t){save();refToast(rc)}buildVl();VFBACK="vvl";openRefs(rc.map(r=>r.id))},gs=repInfo().glist,go2=g=>refMode("تحويل المحدَّدين","سيُحوَّل "+P.length+" طالباً",t=>run(g,t));
+ if(gs.length>1){pickG("تحويل المحدَّدين","سيُحوَّل "+P.length+" طالباً",go2);return}go2(gs[0]||"")};
 $("vrDel").onclick=()=>{const P=selR();if(!P.length){flash("vlM","حدّد التحويلات المراد حذفها أولاً");return}
  if(!ask("vrd",$("vrDel"),"vlM","اضغط الزر مرة ثانية لحذف "+P.length+" تحويل"))return;D.refl=D.refl.filter(r=>!P.includes(r.id));P.forEach(i=>SELR.delete(i));save();buildVl();flash("vlM","✓ تم حذف "+P.length+" تحويل")};
 $("vlRP").onclick=()=>{const ids=new Set(vlStu().map(s=>String(s[0]))),L=(D.refl||[]).filter(r=>ids.has(String(r.sid))).map(r=>r.id);if(!L.length){flash("vlM","لا توجد تحويلات منفذة للطباعة");return}VFBACK="vvl";openRefs(L)};
@@ -1218,15 +1219,15 @@ function refHTML(R){const s=stuBy(R.sid);if(!s)return "";
  <div class="vfb"><h4>ما تم حيال الطالب/ة ( خاص بالموجه/ة الطلابي/ة )</h4><div class="c vfe"></div>${foot("الموجه/ة الطلابي/ة",gn,"")}</div>${stubH()}`}
 let VFIDS=null;
 function openRefs(ids){VFIDS=ids.length>1?ids:null;VFID=ids[0];go("vvf",ids.length>1?"نماذج التحويل ("+ids.length+")":"نموذج التحويل")}
-function buildVf(){const ids=VFIDS||[VFID],Rs=ids.map(i=>(D.refl||[]).find(r=>r.id===i)).filter(r=>r&&stuBy(r.sid));
+function buildVf(){const ids=VFIDS||[VFID],Rs=ids.map(i=>findRef(i)).filter(r=>r&&stuBy(r.sid));
  if(!Rs.length){$("vfB").innerHTML="<p style='padding:12px'>التحويل أو الطالب غير موجود.</p>";$("vfGw").style.display="none";return}
  const I=repInfo(),gs=I.glist,R0=Rs[0],gn=gs.length==1?gs[0]:(gs.includes(R0.gd)?R0.gd:(gs.includes(I.gsel)?I.gsel:""));
  $("vfGw").style.display=(gs.length>1&&Rs.length==1)?"":"none";$("vfG").innerHTML=`<option value="">— اختر الموجه —</option>`+gs.map(g=>`<option ${g===gn?"selected":""}>${esc(g)}</option>`).join("");
  $("vfDw").style.display=Rs.length==1?"":"none";if(Rs.length==1){$("vfD").value=R0.date||todayS();setHP("vfD");$("vfDh").textContent="الموافق: "+$("vfD").value+" م"}
  $("vfP").textContent=Rs.length>1?"🖨 طباعة ("+Rs.length+" نموذج)":"🖨 طباعة";
  $("exVf").style.display=Rs.length>1?"":"none";$("vfB").innerHTML=Rs.map(R=>`<div class="vfpg" data-sn="${esc((stuBy(R.sid)||[])[1]||"")}">${refHTML(R)}</div>`).join("")}
-$("vfD").onchange=()=>{const R=(D.refl||[]).find(r=>r.id===VFID);if(R&&$("vfD").value){R.date=$("vfD").value;save();buildVf()}};
-$("vfG").onchange=()=>{const R=(D.refl||[]).find(r=>r.id===VFID);if(R){R.gd=$("vfG").value;save();buildVf()}};
+$("vfD").onchange=()=>{const R=findRef(VFID);if(R&&$("vfD").value){R.date=$("vfD").value;save();buildVf()}};
+$("vfG").onchange=()=>{const R=findRef(VFID);if(R){R.gd=$("vfG").value;save();buildVf()}};
 $("vfP").onclick=()=>{$("pgst").textContent="@media print{@page{size:A4 portrait;margin:8mm}}";window.print()};
 // ---------- شاشة الطلاب ----------
 let UID=null;
@@ -1519,8 +1520,9 @@ $("cs").onclick=shareData;$("co").onclick=()=>$("f").click();$("rs").onclick=()=
 $("f").onchange=async e=>{const fl=e.target.files[0];e.target.value="";if(!fl)return;
  try{let o;if(/\.(json|txt)$/i.test(fl.name)){o=JSON.parse(await fl.text());if(!o||typeof o!="object"||!o.vals)throw 0}else o=await parseData(fl);
   RJ=migrate(o);const d=o.savedAt?(x=>hj(x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"))+" "+x.toLocaleTimeString("ar",{hour:"2-digit",minute:"2-digit"}))(new Date(o.savedAt)):"غير معروف",n=(o.students&&o.students.length)||STUDENTS.length;
-  const nw=o.savedAt&&D.mod&&new Date(D.mod)-new Date(o.savedAt)>2000;$("rsT").innerHTML=`ملف البيانات محفوظ بتاريخ ${d} (${n} طالب). سيحل محل بياناتك الحالية على هذا الجوال. المتابعة؟`+(nw?`<br><br><span class="dk">⚠ بيانات هذا الجهاز أحدث من الملف (آخر تعديل ${fdt(D.mod)}). إن استرجعته ستفقد التعديلات التي بعد تاريخ الملف.</span>`:"");$("rsd").showModal()}
+  const nw=o.savedAt&&D.mod&&new Date(D.mod)-new Date(o.savedAt)>2000;$("rsT").innerHTML=`ملف البيانات محفوظ بتاريخ ${d} (${n} طالب). «استرجاع بيانات الطلاب فقط» يأخذ الطلاب ودرجاتهم ومخالفاتهم ويُبقي الميزان والبيانات الرئيسية والتوقيع وجدول الحصص كما هي. «استبدال كل بياناتي» يحل الملف محل كل شيء على هذا الجوال.`+(nw?`<br><br><span class="dk">⚠ بيانات هذا الجهاز أحدث من الملف (آخر تعديل ${fdt(D.mod)}). إن استرجعته ستفقد التعديلات التي بعد تاريخ الملف.</span>`:"");$("rsd").showModal()}
  catch(x){shToast("تعذّر الاسترجاع: الملف غير صالح أو ليس ملف بيانات التطبيق",false)}};
+$("rsSt").onclick=()=>{if(!RJ)return;for(const k of ["cfg","info","tt","sig","sg2","per","dbxRev","dbxAt"])if(D[k]!==undefined)RJ[k]=D[k];$("rsOk").onclick()};
 $("rsOk").onclick=()=>{if(!RJ)return;D=RJ;RJ=null;const sa=D.savedAt;delete D.savedAt;normD(D);
  STUDENTS=Array.isArray(D.students)&&(D.students.length||D.wiped)?D.students:BASE;save();if(sa){D.mod=D.cloudAt=sa;try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}$("rsd").close();$("gateD").close();$("per").value=D.per;fillGrp();applyType();fillItems();go(CUR);buildMenus();shToast("تم استرجاع النسخة بنجاح",true)};
 
@@ -1873,7 +1875,7 @@ function docName(){const cl=t=>(t||"").replace(/[\\/:*?"<>|]+/g," ").replace(/\s
  else if(CUR=="v2"){t="نتائج الطلاب";if($("grp2")&&$("grp2").value)n=$("grp2").value}
  else if(CUR=="vsk"){t="كشف الطالب";const q=stuBy(SKID);if(q)n=q[1]}
  else if(CUR=="vana")t="تحليل النتائج";else if(CUR=="vtt")t="جدول الحصص";
- else if(CUR=="vvf"){t="نموذج التحويل";const R=(D.refl||[]).find(x=>x.id===VFID),q=R&&stuBy(R.sid);if(q&&!VFIDS)n=q[1]}
+ else if(CUR=="vvf"){t="نموذج التحويل";const R=findRef(VFID),q=R&&stuBy(R.sid);if(q&&!VFIDS)n=q[1]}
  else if(CUR=="vvl")t="قائمة الإنذارات"}catch(e){}
  return cl(t+(n?" - "+n:""))}
 const IOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform=="MacIntel"&&navigator.maxTouchPoints>1);
