@@ -770,7 +770,8 @@ html #vhn>#hnB{grid-row:3}
 (function(){try{const ipad=/iPad/.test(navigator.userAgent)||(navigator.platform=="MacIntel"&&navigator.maxTouchPoints>1),st=navigator.standalone===true||matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches;if(!(ipad&&st))return;
  const R=document.documentElement.style,fx=()=>{const land=innerWidth>innerHeight,ph=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height),pw=land?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);let g=Math.round(ph-innerHeight);if(Math.abs(pw-innerWidth)>4||g<0||g>60)g=0;R.setProperty("--satmin",Math.max(24,g)+"px");R.setProperty("--bgap",g+"px");try{if(typeof hh=="function")hh();if(typeof setHH=="function")setHH()}catch(e){}};
  fx();addEventListener("resize",()=>setTimeout(fx,60));addEventListener("orientationchange",()=>setTimeout(fx,300));addEventListener("load",fx)}catch(e){}})();
-window.onerror=(m,s,l)=>{alert("خطأ: "+m+" (سطر "+l+")")};
+function errLog(){try{return JSON.parse(localStorage.getItem("err_log")||"[]")}catch(e){return[]}}function errAdd(m){try{const L=errLog();L.unshift({t:new Date().toLocaleString("en-GB"),m:String(m).slice(0,400)});localStorage.setItem("err_log",JSON.stringify(L.slice(0,15)))}catch(e){}}
+window.onerror=(m,s,l,c,er)=>{const info=(er&&er.stack?String(er.stack).split("\n").slice(0,2).join(" | "):"")||(s?String(s).slice(-40):"");errAdd(m+" (سطر "+l+(c?":"+c:"")+") "+info);if(/^Script error\.?$/i.test(String(m))&&!l)return true;alert("خطأ: "+m+" (سطر "+l+")")};addEventListener("unhandledrejection",e=>{try{errAdd("Promise: "+((e.reason&&(e.reason.message||e.reason))||""))}catch(_){}});
 // محرك حساب درجات المتابعة (يطابق قواعد ملف إكسل)
 (function (root) {
   const ST = {
@@ -1855,7 +1856,7 @@ function dbxAsk(md,remoteDate){const ov=document.createElement("div");ov.classNa
  $("dxC").onclick=()=>ov.remove();
  $("dxA").onclick=async()=>{ov.remove();try{const p=await dbxPull();dbxApply(p.o,p.rev||md.rev);DBX.last=new Date().toISOString();DBX.msg="";dbxStatus();shToast("تم تحميل نسخة Dropbox",true)}catch(e){DBX.msg="تعذّر تحميل النسخة";dbxStatus();shToast("تعذّر تحميل نسخة Dropbox",false)}};
  $("dxB").onclick=async()=>{ov.remove();try{D.dbxRev=md.rev;await dbxPush();DBX.last=new Date().toISOString();DBX.msg="";dbxStatus();shToast("تم رفع بيانات هذا الجهاز إلى Dropbox",true)}catch(e){DBX.msg="تعذّر الرفع";dbxStatus();shToast("تعذّر الرفع إلى Dropbox",false)}}}
-const BUILD="2026.11.28-4";
+const BUILD="2026.11.28-5";
 // ===== دمج ثلاثي للبيانات (الأساس + هذا الجهاز + Dropbox) =====
 const MG_META=["mod","savedAt","dbxRev","dbxAt","cloudAt"],MG_SOFT=["per","cur","sg2"];
 const mgEq=(a,b)=>a===b||JSON.stringify(a)===JSON.stringify(b);
@@ -1921,6 +1922,11 @@ async function dbxSync(manual,poll){if(DBX.busy||DBX.pick||!dbxLinked()||documen
  DBX.busy=false;dbxStatus()}
 
 // ===== التحديث والعمل بدون إنترنت =====
+// تُحفظ في الذاكرة نسخة حقيقية من الشبكة (لا نسخة مصنوعة)، لأن Safari يُخفي تفاصيل الأخطاء في الصفحات المصنوعة
+async function updCacheReal(build){const root=new URL("./",location.href).href,c=await caches.open(SWC);
+ for(const url of [root,root+"index.html"]){try{const r=await fetch(url,{cache:"no-store"});if(!r.ok||r.type!="basic")continue;const t=await r.clone().text();if(build&&!t.includes('BUI'+'LD="'+build+'"'))continue;await c.put(root,r);return true}catch(e){}}return false}
+// إصلاح ذاتي: إن كانت النسخة المحفوظة مصنوعة (بلا رابط) تُستبدل بنسخة حقيقية في الخلفية
+setTimeout(async()=>{try{if(!("caches" in window)||!navigator.serviceWorker||!navigator.serviceWorker.controller||navigator.onLine===false)return;const c=await caches.open(SWC),r=await c.match(new URL("./",location.href).href);if(r&&!r.url)await updCacheReal(BUILD)}catch(e){}},6000);
 const SWC="mnasa-app-v1",UPD={v:"",b:"",txt:"",chk:"",dismiss:false,sw:null};
 const updAuto=()=>{try{return localStorage.getItem("upd_auto")==="1"}catch(e){return false}};
 const updSecure=()=>location.protocol=="https:"||location.hostname=="localhost"||location.hostname=="127.0.0.1";
@@ -1934,7 +1940,7 @@ async function updCheck(manual){if(!updSecure()){if(manual)shToast("التحقق
   else{UPD.b=m[1];UPD.v=(/class="bfV">\s*الإصدار\s*([\d.]+)/.exec(t)||[])[1]||"";UPD.txt=t;if(updAuto()&&!manual)await updApply(true);else updBanner()}
  }catch(e){if(manual)shToast("تعذّر التحقق من التحديث",false)}updCard()}
 async function updApply(auto){try{if(!UPD.txt)await updCheck();const t=UPD.txt;if(!t)return;
- let cached=false;if(UPD.sw&&"caches" in window){const c=await caches.open(SWC);await c.put(new URL("./",location.href).href,new Response(t,{headers:{"Content-Type":"text/html; charset=utf-8"}}));cached=true}
+ let cached=false;if(UPD.sw&&"caches" in window){cached=await updCacheReal(UPD.b)}
  if(auto&&(dbxBusyUI()||performance.now()>20000)){UPD.dismiss=true;updBanner();shToast(cached?"نُزّل الإصدار الجديد، وسيعمل عند فتح البرنامج المرة القادمة":"يتوفر إصدار جديد، وسيعمل عند فتح البرنامج المرة القادمة",true);return}
  try{if(dbxLinked()&&dbxDirty())await dbxSync(false)}catch(e){}
  if(cached)location.reload();else location.replace(location.pathname+"?u="+Date.now())}catch(e){shToast("تعذّر التحديث، حاول مرة أخرى",false)}}
@@ -1943,13 +1949,13 @@ function updBanner(){let b=$("updB");const show=!!UPD.b&&!UPD.dismiss;if(!show){
   b.addEventListener("click",e=>{if(e.target.closest("#updY"))updApply(false);else if(e.target.closest("#updN")){UPD.dismiss=true;updBanner()}})}
  b.innerHTML=`<span>🎉 يتوفر إصدار جديد${UPD.v&&UPD.v!==curVer()?" ("+esc(UPD.v)+")":""}</span><button class="btn" id="updY">تحديث الآن</button><button class="btn sec" id="updN">لاحقًا</button>`}
 function updCard(){const g=$("vg3");if(!g)return;let c=$("updC");if(!c){c=document.createElement("div");c.className="fc";c.id="updC";g.appendChild(c);
-  c.addEventListener("click",e=>{if(e.target.closest("#updK"))updCheck(true);else if(e.target.closest("#updA"))updApply(false)});
+  c.addEventListener("click",e=>{if(e.target.closest("#updK"))updCheck(true);else if(e.target.closest("#updA"))updApply(false);else if(e.target.closest("#errClr")){try{localStorage.removeItem("err_log")}catch(_){}updCard()}});
   c.addEventListener("change",e=>{if(e.target.id=="updT"){try{localStorage.setItem("upd_auto",e.target.checked?"1":"0")}catch(_){}shToast(e.target.checked?"سيُحدَّث البرنامج تلقائيًا عند توفر إصدار جديد":"سيظهر لك إشعار عند توفر إصدار جديد",true)}})}
  const ctl=!!(navigator.serviceWorker&&navigator.serviceWorker.controller),off=UPD.sw===true?(ctl?`<b style="color:#15803d">مفعّل ✓</b> — يفتح البرنامج ويعمل حتى بدون إنترنت.`:`<b style="color:#15803d">مفعّل ✓</b> — يكتمل من الفتح القادم للبرنامج.`):updSecure()?`<b style="color:#b45309">غير مفعّل</b> — ارفع ملف sw.js بجانب index.html.`:`يعمل عند فتح البرنامج من رابطه على الإنترنت.`;
  c.innerHTML=`<div class="bt">🔄 التحديث والعمل بدون إنترنت</div><div class="updI"><div><span>الإصدار الحالي</span><b>${esc(curVer()||"—")}</b><small>${esc(BUILD)}</small></div><div><span>الإصدار المتوفر</span><b>${UPD.b?esc(UPD.v||"جديد"):UPD.chk?"لا يوجد أحدث ✓":"—"}</b><small>${UPD.b?esc(UPD.b):UPD.chk?"آخر تحقق "+fdt(UPD.chk):"لم يُتحقق بعد"}</small></div></div>
  <div class="row" style="margin-top:8px"><button class="btn sec" id="updK" style="flex:1">🔍 التحقق من التحديث</button>${UPD.b?`<button class="btn" id="updA" style="flex:1">⬇ تحديث الآن</button>`:""}</div>
  <label class="rd" style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="updT" style="width:auto;margin:0"${updAuto()?" checked":""}> التحديث التلقائي (بدون سؤال)</label>
- <p class="hnote" style="margin:8px 0 0;text-align:start">العمل بدون إنترنت: ${off}<br>التحديث لا يمس بياناتك؛ هي محفوظة على الجهاز وفي Dropbox.</p>`}
+ ${(()=>{const E=errLog();return E.length?`<details style="margin-top:8px;font-size:12px"><summary style="cursor:pointer;color:var(--mut)">سجل الأخطاء (${E.length})</summary><div style="direction:ltr;text-align:left;white-space:pre-wrap;font:11px/1.5 monospace;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px;margin-top:4px;max-height:180px;overflow:auto">${esc(E.map(x=>x.t+"  "+x.m).join("\n"))}</div><button class="btn sec" id="errClr" style="margin-top:6px;padding:4px 10px;font-size:12px">مسح السجل</button></details>`:""})()}<p class="hnote" style="margin:8px 0 0;text-align:start">العمل بدون إنترنت: ${off}<br>التحديث لا يمس بياناتك؛ هي محفوظة على الجهاز وفي Dropbox.</p>`}
 setTimeout(updCard,0);setTimeout(()=>updCheck(false),4000);
 addEventListener("online",()=>{if(!UPD.chk||Date.now()-Date.parse(UPD.chk)>600000)updCheck(false)});
 addEventListener("visibilitychange",()=>{if(document.visibilityState=="visible"&&(!UPD.chk||Date.now()-Date.parse(UPD.chk)>1800000))updCheck(false)});
