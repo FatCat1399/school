@@ -1867,7 +1867,7 @@ function dbxAsk(md,remoteDate){const ov=document.createElement("div");ov.classNa
  $("dxC").onclick=()=>ov.remove();
  $("dxA").onclick=async()=>{ov.remove();try{const p=await dbxPull();dbxApply(p.o,p.rev||md.rev);DBX.last=new Date().toISOString();DBX.msg="";dbxStatus();shToast("تم تحميل نسخة Dropbox",true)}catch(e){DBX.msg="تعذّر تحميل النسخة";dbxStatus();shToast("تعذّر تحميل نسخة Dropbox",false)}};
  $("dxB").onclick=async()=>{ov.remove();try{D.dbxRev=md.rev;await dbxPush();DBX.last=new Date().toISOString();DBX.msg="";dbxStatus();shToast("تم رفع بيانات هذا الجهاز إلى Dropbox",true)}catch(e){DBX.msg="تعذّر الرفع";dbxStatus();shToast("تعذّر الرفع إلى Dropbox",false)}}}
-const BUILD="2026.11.28-8";
+const BUILD="2026.11.28-10";
 // ===== دمج ثلاثي للبيانات (الأساس + هذا الجهاز + Dropbox) =====
 const MG_META=["mod","savedAt","dbxRev","dbxAt","cloudAt"],MG_SOFT=["per","cur","sg2"];
 const mgEq=(a,b)=>a===b||JSON.stringify(a)===JSON.stringify(b);
@@ -2245,6 +2245,20 @@ if($("fInfo"))new MutationObserver(()=>{if(CUR=="vi")fInfoPairs()}).observe($("f
 
 (function(){if(!$("satC")){const d=document.createElement("div");d.id="satC";d.className="noprint";d.setAttribute("aria-hidden","true");document.body.prepend(d)}})();
 (function(){const h=document.querySelector("header");if(!h)return;const f=()=>document.documentElement.style.setProperty("--hhf",h.offsetHeight+"px");f();try{new ResizeObserver(f).observe(h)}catch(e){addEventListener("resize",f);setInterval(f,1000)}})();
+// ---- الترتيب عموديًا: 1 ثم تحته 2 (بدل 1 وبجانبه 2) في القوائم متعددة الأعمدة ----
+const CMJ=["#v1 #list","#vdd #ddL","#rlist",".plck"];
+function colMajor(el){const cs=getComputedStyle(el);if(cs.display=="none"||!cs.display.includes("grid"))return;
+ const kids=[...el.children].filter(k=>getComputedStyle(k).display!="none"),span=kids.filter(k=>getComputedStyle(k).gridColumnStart=="1"&&getComputedStyle(k).gridColumnEnd=="-1"),items=kids.filter(k=>!span.includes(k));
+ const set=(p,v)=>{if(el.style[p]!==v)el.style[p]=v};
+ el.style.gridAutoFlow="";el.style.gridTemplateRows="";const C=getComputedStyle(el).gridTemplateColumns.split(" ").filter(x=>x&&x!="0px").length;
+ if(C<2||items.length<3){set("gridAutoFlow","");set("gridTemplateRows","");span.forEach(k=>{if(k.style.gridRow)k.style.gridRow=""});return}
+ span.forEach((k,i)=>{if(k.style.gridRow!==String(i+1))k.style.gridRow=String(i+1)});
+ const R=Math.ceil(items.length/C);set("gridAutoFlow","column");set("gridTemplateRows",(span.length?"repeat("+span.length+",auto) ":"")+"repeat("+R+",auto)")}
+let CMN=0;
+let CMQ=0;const CMO=new MutationObserver(ms=>{if(ms.some(m=>m.type=="childList"||(m.target.closest&&m.target.closest(CMJ.join(",")))))cmSoon()}),cmObs=()=>CMO.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["style","class"]});
+function colMajorAll(){CMQ=0;CMN++;CMO.disconnect();try{CMJ.forEach(s=>document.querySelectorAll(s).forEach(colMajor))}catch(e){}CMO.takeRecords();cmObs()}
+const cmSoon=()=>{if(!CMQ)CMQ=requestAnimationFrame(colMajorAll)};cmObs();
+addEventListener("resize",cmSoon);addEventListener("beforeprint",colMajorAll);setTimeout(colMajorAll,0);
 
 const tile=(ic,t,sub,cls)=>`<button class="tile ${cls||""}" style="--a:${tcol(t)}"><span class="ic">${ic}</span><span><b>${t}</b>${sub?`<small>${sub}</small>`:""}</span></button>`;
 function bnBuild(){if($("bn"))return;const n=document.createElement("nav");n.id="bn";n.className="noprint";
